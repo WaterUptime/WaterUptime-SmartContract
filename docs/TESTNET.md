@@ -7,10 +7,10 @@
 | | |
 |---|---|
 | Network | Stellar testnet (`Test SDF Network ; September 2015`) |
-| Contract ID | `CAB2RVLLJCMV5FWVYGEUB7GMCZHCAQBOSBL7LQPX6V4UQ3TFA5GHH646` |
-| Built from | commit `9d1eb49` (PR #1), `soroban-sdk 27`, `stellar 27.1.0` |
+| Contract ID | `CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO` |
+| Built from | commit `f31863f` (PR #1), `soroban-sdk 27`, `stellar 27.1.0` |
 | Deployed | 2026-10-27 |
-| Explorer | [Stellar Lab](https://lab.stellar.org/r/testnet/contract/CAB2RVLLJCMV5FWVYGEUB7GMCZHCAQBOSBL7LQPX6V4UQ3TFA5GHH646) |
+| Explorer | [Stellar Lab](https://lab.stellar.org/r/testnet/contract/CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO) |
 
 ### Synthetic role accounts
 
@@ -23,19 +23,28 @@
 
 Only the maintainer holds these keys. Anyone can **read** this deployment. To **write** (report, assign, submit and so on), deploy your own instance with the demo script below, where you control every role.
 
-### Demo job
+### Demo jobs
 
-Job `1` on water point `34a1e96a…698042` went through the full lifecycle, including one rework cycle:
+Both jobs are on water point `bd21852e…3ee766`.
+
+**Job 1** went through the full lifecycle, including one rework cycle:
 
 | Step | Transaction |
 |---|---|
-| `report_fault` | [6af6df4a…](https://stellar.expert/explorer/testnet/tx/6af6df4a90c368f568122fd9f7a9194102e781fe24d39af32c009dee6e243835) |
-| `assign_job` | [159ff157…](https://stellar.expert/explorer/testnet/tx/159ff15783bf45886691058be466f4745c0c6d7baa2859aa651e6c5bb7cbd567) |
-| `submit_repair` | [1999a1ef…](https://stellar.expert/explorer/testnet/tx/1999a1ef93fcd26e7c8dd338b65712dc5279a22092674077ab60cd8da06df01d) |
-| `verify_repair` (rejected) | [7f2e9541…](https://stellar.expert/explorer/testnet/tx/7f2e9541365a5bbe97a103fb95b8a15d8f1d9a5d25f54407c7262c56cd429cc4) |
-| `submit_repair` (rework) | [04729fe9…](https://stellar.expert/explorer/testnet/tx/04729fe9a47f17c5b417d4fedbbebf7b3a3a7323765e204c007820bfdaeea590) |
-| `verify_repair` (approved) | [d00afe05…](https://stellar.expert/explorer/testnet/tx/d00afe05f07e6f9bbb8264a3a417fa4d46ffae3f3bb7592fb0d597b4482e5a66) |
-| `close_job` | [a107bb39…](https://stellar.expert/explorer/testnet/tx/a107bb3990e8a78e0566d54b14f00ce9fb830ec1706bc905af94c1f18724d30d) |
+| `report_fault` | [d4731e1e…](https://stellar.expert/explorer/testnet/tx/d4731e1ec82d7eaa8fdcce1c045e29b4449874204836016e0cad9bf80c8770e8) |
+| `assign_job` | [8a421b10…](https://stellar.expert/explorer/testnet/tx/8a421b10b0ab4d096f850bf8d1ea77ed65e536696fedd40bc50fc74f3c8728b5) |
+| `submit_repair` | [05edbe5b…](https://stellar.expert/explorer/testnet/tx/05edbe5bd8484bf2951e48fc9c9d55713ba5e54e2f085f8765bb34d4b306e406) |
+| `verify_repair` (rejected) | [3b744a67…](https://stellar.expert/explorer/testnet/tx/3b744a675432f151a376520af322f9e367143354b8a57938cbd1c9b3572d7527) |
+| `submit_repair` (rework) | [6b6a7934…](https://stellar.expert/explorer/testnet/tx/6b6a7934a0f7dfffb5bcf781c4b2fd6cf0b23ae4822615f565a658f5b55639d2) |
+| `verify_repair` (approved) | [11735f3c…](https://stellar.expert/explorer/testnet/tx/11735f3cdd6b5dc705d701496b0a24cc6dd2d00d6db076efbc6b63aed7e7fa79) |
+| `close_job` | [217798f4…](https://stellar.expert/explorer/testnet/tx/217798f44f110551b63b5bc0962ec60bdd85625eddd95662e1ac1cb79a36f483) |
+
+**Job 2** is a mistaken report, cancelled by the coordinator:
+
+| Step | Transaction |
+|---|---|
+| `report_fault` | [a0b41774…](https://stellar.expert/explorer/testnet/tx/a0b41774df6c8ec0da556d12bfc70500cfb5801565212be2d54a142e047762df) |
+| `cancel_job` | [790c0092…](https://stellar.expert/explorer/testnet/tx/790c0092434859b96e3aceacfbb7bccc6b2a313159100aaaded82a0616b0bcbe) |
 
 ## Reading the deployment
 
@@ -44,13 +53,16 @@ Read-only calls are simulated rather than submitted, so they are free. Any funde
 ```bash
 stellar keys generate reader --network testnet --fund   # once
 
-CONTRACT=CAB2RVLLJCMV5FWVYGEUB7GMCZHCAQBOSBL7LQPX6V4UQ3TFA5GHH646
+CONTRACT=CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO
 stellar contract invoke --id $CONTRACT --source reader --network testnet --send=no -- job_count
 stellar contract invoke --id $CONTRACT --source reader --network testnet --send=no -- get_job --job_id 1
 stellar contract invoke --id $CONTRACT --source reader --network testnet --send=no -- get_job_history --job_id 1
 ```
 
-`get_job` for job 1 should return `"status":"Closed"`, and `get_job_history` should return 7 entries: `Reported, Assigned, RepairSubmitted, RepairReturned, RepairSubmitted, RepairApproved, Closed`.
+Expected results:
+- `job_count` is `2`.
+- Job 1: `"status":"Closed"`, with 7 history entries: `Reported, Assigned, RepairSubmitted, RepairReturned, RepairSubmitted, RepairApproved, Closed`.
+- Job 2: `"status":"Cancelled"`, with 2 history entries: `Reported, Cancelled`.
 
 ## For the frontend
 
@@ -59,7 +71,7 @@ Generate TypeScript bindings from the deployed contract:
 ```bash
 stellar contract bindings typescript \
   --network testnet \
-  --contract-id CAB2RVLLJCMV5FWVYGEUB7GMCZHCAQBOSBL7LQPX6V4UQ3TFA5GHH646 \
+  --contract-id CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO \
   --output-dir packages/water_uptime
 ```
 
@@ -74,9 +86,9 @@ rustup target add wasm32v1-none
 scripts/testnet-demo.sh
 ```
 
-The script creates four funded testnet keys (`wu-admin`, `wu-reporter`, `wu-technician`, `wu-verifier`, or set `KEY_PREFIX`). It then deploys a fresh contract with you as admin, runs one synthetic job through the full lifecycle including a rework cycle, checks that an invalid close is rejected, and prints the final state and history.
+The script creates four funded testnet keys (`wu-admin`, `wu-reporter`, `wu-technician`, `wu-verifier`, or set `KEY_PREFIX`). It then deploys a fresh contract with you as admin, runs one synthetic job through the full lifecycle including a rework cycle, checks that an invalid close is rejected, files and cancels a second mistaken report, and prints both jobs' final state and history.
 
-**Expected result:** the script ends with `expected status "Closed" with 7 history entries`. It exits non-zero if any step fails.
+**Expected result:** job 1 ends `Closed` with 7 history entries, and job 2 ends `Cancelled` with 2. The script exits non-zero if any step fails. Testnet RPC occasionally drops a request (`client error (SendRequest)`); if that happens, re-run the script.
 
 ## Redeploying the shared instance (maintainers)
 
