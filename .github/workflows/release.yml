@@ -1,0 +1,26 @@
+name: Build and Release
+
+# On a version tag, build the contract in GitHub Actions with the Stellar Expert
+# workflow: it embeds the source repository in the WASM metadata, publishes the
+# WASM as a release asset, and creates a build attestation so explorers can
+# verify the deployed code against this repository.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  id-token: write
+  contents: write
+  attestations: write
+
+jobs:
+  release-water-uptime:
+    # Pinned to a commit for supply-chain safety; review before bumping.
+    uses: stellar-expert/soroban-build-workflow/.github/workflows/release.yml@6b16426dd3a61715ddddf83a2df322a6371fe071
+    with:
+      release_name: ${{ github.ref_name }}
+      release_description: "Attested build of water_uptime ${{ github.ref_name }}. Testnet only; not audited."
+      package: water_uptime
+    secrets:
+      release_token: ${{ secrets.GITHUB_TOKEN }}
