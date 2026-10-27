@@ -1,0 +1,86 @@
+# WaterUptime — Smart Contract
+
+Soroban (Stellar) contract for **WaterUptime**: open-source maintenance and verification infrastructure for community water systems.
+
+The contract enforces an auditable repair workflow for a water point — fault report, assignment, repair evidence, independent verification, and close-out — and keeps a readable on-chain history of who did what and when.
+
+> **Status:** experimental prototype. Testnet and synthetic data only. Not audited. No real funds, no mainnet, no personal data. No government, NGO, or UNDP partnership is claimed.
+
+Related repositories: [WaterUptime](https://github.com/WaterUptime/WaterUptime) (project docs) · [WaterUptime-Frontend](https://github.com/WaterUptime/WaterUptime-Frontend) (web app).
+
+## Lifecycle
+
+```text
+Reported ─▶ Assigned ─▶ RepairSubmitted ─▶ Verified ─▶ Closed
+                ▲              │
+                │              ▼
+                └────────  NeedsRework   (reject → rework → resubmit)
+```
+
+| Action | Caller (must sign) | Allowed from | Result |
+|---|---|---|---|
+| `report_fault` | authorised reporter | water point registered, active, no open job | `Reported` |
+| `assign_job` | admin / coordinator | `Reported`, `Assigned`, `NeedsRework` | `Assigned` |
+| `submit_repair` | assigned technician | `Assigned`, `NeedsRework` | `RepairSubmitted` |
+| `verify_repair(approved=true)` | assigned verifier | `RepairSubmitted` | `Verified` |
+| `verify_repair(approved=false)` | assigned verifier | `RepairSubmitted` | `NeedsRework` |
+| `close_job` | admin / coordinator | `Verified` | `Closed` |
+
+### Invariants enforced
+
+- Only the admin (coordinator) can register water points, manage reporters, assign jobs, and close jobs.
+- Reports must reference a registered, **active** water point, and only one job may be open per water point at a time.
+- The technician and verifier must be different addresses.
+- Only the assigned technician can submit evidence. Only the assigned verifier can approve or reject it.
+- A job cannot close until it is verified. Closed jobs cannot be reassigned or modified.
+- Rework never erases history: every transition appends an `AuditEntry` (action, actor, evidence reference, timestamp). History is capped at `MAX_HISTORY_LEN` (50) entries per job.
+- Every state change emits an event. See [`docs/CONTRACT_INTERFACE.md`](docs/CONTRACT_INTERFACE.md).
+- Revoking a reporter does not affect jobs they already created.
+
+### What the contract does *not* do
+
+It records **authorised claims**; it cannot prove a repair physically happened or that water is safe. Names, phone numbers, GPS coordinates, photos, and documents stay off-chain. Only opaque 32-byte IDs and evidence fingerprints (hashes) are stored. A hash of low-entropy data can be guessed, so salt off-chain records before hashing.
+
+## Layout
+
+```text
+contracts/water_uptime/src/
+├── lib.rs       # contract entry points and state machine
+├── types.rs     # WaterPoint, MaintenanceJob, JobStatus, AuditEntry, Error, storage keys
+├── events.rs    # #[contractevent] definitions
+├── storage.rs   # storage access and TTL management
+└── test.rs      # unit tests (positive, negative, auth, events)
+```
+
+## Development
+
+Requirements: Rust (stable) with the `wasm32v1-none` target, and the [Stellar CLI](https://developers.stellar.org/docs/tools/cli) (built and tested with `stellar 27.1.0` and `soroban-sdk 27`).
+
+```bash
+rustup target add wasm32v1-none
+cargo test                  # run unit tests
+stellar contract build      # build target/wasm32v1-none/release/water_uptime.wasm
+cargo fmt --all && cargo clippy --all-targets -- -D warnings
+```
+
+CI runs fmt, clippy, tests, and a WASM build on every push and PR.
+
+## Testnet demo (synthetic data only)
+
+```bash
+stellar keys generate admin --network testnet --fund
+stellar contract deploy --wasm target/wasm32v1-none/release/water_uptime.wasm \
+  --source admin --network testnet --alias water_uptime
+stellar contract invoke --id water_uptime --source admin --network testnet -- \
+  initialize --admin admin
+```
+
+Never use real funds, real water-point identifiers, or personal data.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Every PR that changes state transitions or authorisation must include positive and negative tests.
+
+## License
+
+[MIT](LICENSE)
