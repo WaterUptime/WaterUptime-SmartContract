@@ -15,6 +15,8 @@ Reported ─▶ Assigned ─▶ RepairSubmitted ─▶ Verified ─▶ Closed
                 ▲              │
                 │              ▼
                 └────────  NeedsRework   (reject → rework → resubmit)
+
+Reported / Assigned / NeedsRework ──cancel──▶ Cancelled   (mistaken or duplicate report)
 ```
 
 | Action | Caller (must sign) | Allowed from | Result |
@@ -25,14 +27,16 @@ Reported ─▶ Assigned ─▶ RepairSubmitted ─▶ Verified ─▶ Closed
 | `verify_repair(approved=true)` | assigned verifier | `RepairSubmitted` | `Verified` |
 | `verify_repair(approved=false)` | assigned verifier | `RepairSubmitted` | `NeedsRework` |
 | `close_job` | admin / coordinator | `Verified` | `Closed` |
+| `cancel_job` | admin / coordinator | `Reported`, `Assigned`, `NeedsRework` | `Cancelled` |
 
 ### Invariants enforced
 
-- Only the admin (coordinator) can register water points, manage reporters, assign jobs, and close jobs.
+- Only the admin (coordinator) can register water points, manage reporters, assign jobs, and close or cancel jobs.
 - Reports must reference a registered, **active** water point, and only one job may be open per water point at a time.
 - The technician and verifier must be different addresses.
 - Only the assigned technician can submit evidence. Only the assigned verifier can approve or reject it.
-- A job cannot close until it is verified. Closed jobs cannot be reassigned or modified.
+- A job cannot close until it is verified. `Closed` and `Cancelled` are terminal: those jobs cannot be reassigned or modified.
+- A job cannot be cancelled while repair evidence awaits verification; the verifier decides first. Cancelling records a reason fingerprint and frees the water point for new reports.
 - Rework never erases history: every transition appends an `AuditEntry` (action, actor, evidence reference, timestamp). History is capped at `MAX_HISTORY_LEN` (50) entries per job.
 - Every state change emits an event. See [`docs/CONTRACT_INTERFACE.md`](docs/CONTRACT_INTERFACE.md).
 - Revoking a reporter does not affect jobs they already created.

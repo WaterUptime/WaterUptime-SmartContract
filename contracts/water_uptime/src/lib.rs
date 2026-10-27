@@ -4,6 +4,8 @@
 //! Records an auditable state machine for community water-point repairs:
 //! `Reported → Assigned → RepairSubmitted → Verified → Closed`, with
 //! `RepairSubmitted → NeedsRework → RepairSubmitted` for rejected repairs.
+//! The coordinator can cancel a job that should not proceed (e.g. a mistaken
+//! or duplicate report) before repair evidence is awaiting verification.
 //!
 //! The contract records *authorised claims*; it does not prove that a repair
 //! physically happened. Only opaque IDs and evidence fingerprints are stored.
@@ -17,8 +19,8 @@ mod types;
 pub use types::{AuditEntry, Error, JobAction, JobStatus, MaintenanceJob, WaterPoint};
 
 use events::{
-    FaultReported, JobAssigned, JobClosed, RepairApproved, RepairReturned, RepairSubmitted,
-    ReporterUpdated, WaterPointRegistered, WaterPointStatusChanged,
+    FaultReported, JobAssigned, JobCancelled, JobClosed, RepairApproved, RepairReturned,
+    RepairSubmitted, ReporterUpdated, WaterPointRegistered, WaterPointStatusChanged,
 };
 
 #[contract]
@@ -33,6 +35,16 @@ fn require_admin(env: &Env) -> Result<Address, Error> {
 
 fn load_job(env: &Env, job_id: u64) -> Result<MaintenanceJob, Error> {
     storage::get_job(env, job_id).ok_or(Error::JobNotFound)
+}
+
+/// Free the water point once its open job reaches a terminal status.
+fn release_water_point(env: &Env, job: &MaintenanceJob) {
+    if let Some(mut point) = storage::get_water_point(env, &job.water_point_id) {
+        if point.open_job == Some(job.id) {
+            point.open_job = None;
+            storage::set_water_point(env, &point);
+        }
+    }
 }
 
 fn record(
@@ -312,16 +324,39 @@ impl WaterUptime {
         }
         job.status = JobStatus::Closed;
         record(&env, &mut job, JobAction::Closed, &admin, None)?;
-
-        if let Some(mut point) = storage::get_water_point(&env, &job.water_point_id) {
-            if point.open_job == Some(job_id) {
-                point.open_job = None;
-                storage::set_water_point(&env, &point);
-            }
-        }
+        release_water_point(&env, &job);
         JobClosed {
             job_id,
             water_point_id: job.water_point_id,
+        }
+        .publish(&env);
+        Ok(())
+    }
+
+    /// Cancel a job that should not proceed, recording a fingerprint of the
+    /// off-chain reason. Allowed from `Reported`, `Assigned` or `NeedsRework`;
+    /// a submitted repair must be assessed by the verifier first. Frees the
+    /// water point for new reports. History is kept.
+    pub fn cancel_job(env: Env, job_id: u64, reason_reference: BytesN<32>) -> Result<(), Error> {
+        let admin = require_admin(&env)?;
+        let mut job = load_job(&env, job_id)?;
+        match job.status {
+            JobStatus::Reported | JobStatus::Assigned | JobStatus::NeedsRework => {}
+            _ => return Err(Error::InvalidTransition),
+        }
+        job.status = JobStatus::Cancelled;
+        record(
+            &env,
+            &mut job,
+            JobAction::Cancelled,
+            &admin,
+            Some(reason_reference.clone()),
+        )?;
+        release_water_point(&env, &job);
+        JobCancelled {
+            job_id,
+            water_point_id: job.water_point_id,
+            reason_reference,
         }
         .publish(&env);
         Ok(())

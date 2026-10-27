@@ -33,6 +33,7 @@ pub enum JobStatus {
     NeedsRework,
     Verified,
     Closed,
+    Cancelled,
 }
 
 /// A registered water point. Holds only an opaque ID and a fingerprint of
@@ -73,6 +74,7 @@ pub enum JobAction {
     RepairApproved,
     RepairReturned,
     Closed,
+    Cancelled,
 }
 
 /// One entry in a job's append-only audit history.

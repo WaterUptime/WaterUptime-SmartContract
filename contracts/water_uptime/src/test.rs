@@ -2,7 +2,7 @@
 extern crate std;
 
 use super::*;
-use crate::events::{FaultReported, JobClosed, RepairReturned};
+use crate::events::{FaultReported, JobCancelled, JobClosed, RepairReturned};
 use soroban_sdk::{
     testutils::{Address as _, Events, Ledger},
     xdr::{ContractEventBody, ScSymbol, ScVal},
@@ -529,6 +529,135 @@ fn history_is_bounded() {
     );
     // The failed call was rolled back.
     assert_eq!(s.status(id), JobStatus::NeedsRework);
+}
+
+// ---- Cancellation ----
+
+#[test]
+fn cancel_frees_water_point_and_keeps_history() {
+    let s = setup();
+    let id = s.assigned_job();
+    s.client.cancel_job(&id, &hash(&s.env, 40));
+    assert_eq!(s.last_signer(), s.admin);
+    assert_eq!(s.status(id), JobStatus::Cancelled);
+    assert_eq!(s.client.get_water_point(&s.point).open_job, None);
+
+    let history = s.client.get_job_history(&id);
+    let actions: std::vec::Vec<JobAction> = history.iter().map(|e| e.action).collect();
+    assert_eq!(
+        actions,
+        [
+            JobAction::Reported,
+            JobAction::Assigned,
+            JobAction::Cancelled
+        ]
+    );
+    let last = history.last().unwrap();
+    assert_eq!(last.actor, s.admin);
+    assert_eq!(last.reference, Some(hash(&s.env, 40)));
+
+    // The water point accepts a fresh report.
+    let next = s.report();
+    assert_eq!(next, 2);
+    assert_eq!(s.client.get_water_point(&s.point).open_job, Some(next));
+}
+
+#[test]
+fn cancel_allowed_from_reported_and_needs_rework() {
+    let s = setup();
+    let reported = s.report();
+    s.client.cancel_job(&reported, &hash(&s.env, 40));
+    assert_eq!(s.status(reported), JobStatus::Cancelled);
+
+    let rework = s.submitted_job();
+    s.client
+        .verify_repair(&s.verifier, &rework, &hash(&s.env, 31), &false);
+    s.client.cancel_job(&rework, &hash(&s.env, 41));
+    assert_eq!(s.status(rework), JobStatus::Cancelled);
+}
+
+#[test]
+fn cancel_rejected_once_evidence_submitted_or_terminal() {
+    let s = setup();
+    let id = s.submitted_job();
+    assert_eq!(
+        s.client.try_cancel_job(&id, &hash(&s.env, 40)),
+        Err(Ok(Error::InvalidTransition))
+    );
+
+    s.client
+        .verify_repair(&s.verifier, &id, &hash(&s.env, 30), &true);
+    assert_eq!(
+        s.client.try_cancel_job(&id, &hash(&s.env, 40)),
+        Err(Ok(Error::InvalidTransition))
+    );
+
+    s.client.close_job(&id);
+    assert_eq!(
+        s.client.try_cancel_job(&id, &hash(&s.env, 40)),
+        Err(Ok(Error::InvalidTransition))
+    );
+    assert_eq!(
+        s.client.try_cancel_job(&42, &hash(&s.env, 40)),
+        Err(Ok(Error::JobNotFound))
+    );
+}
+
+#[test]
+fn cancelled_job_is_terminal() {
+    let s = setup();
+    let id = s.assigned_job();
+    s.client.cancel_job(&id, &hash(&s.env, 40));
+
+    assert_eq!(
+        s.client.try_cancel_job(&id, &hash(&s.env, 41)),
+        Err(Ok(Error::InvalidTransition))
+    );
+    assert_eq!(
+        s.client.try_assign_job(&id, &s.technician, &s.verifier),
+        Err(Ok(Error::InvalidTransition))
+    );
+    assert_eq!(
+        s.client
+            .try_submit_repair(&s.technician, &id, &hash(&s.env, 20)),
+        Err(Ok(Error::InvalidTransition))
+    );
+    assert_eq!(
+        s.client
+            .try_verify_repair(&s.verifier, &id, &hash(&s.env, 30), &true),
+        Err(Ok(Error::InvalidTransition))
+    );
+    assert_eq!(
+        s.client.try_close_job(&id),
+        Err(Ok(Error::InvalidTransition))
+    );
+    assert_eq!(s.client.get_job_history(&id).len(), 3);
+}
+
+#[test]
+fn unsigned_cancel_is_rejected() {
+    let s = setup();
+    let id = s.report();
+    s.env.set_auths(&[]);
+    assert!(s.client.try_cancel_job(&id, &hash(&s.env, 40)).is_err());
+    s.env.mock_all_auths();
+    assert_eq!(s.status(id), JobStatus::Reported);
+}
+
+#[test]
+fn cancel_emits_event() {
+    let s = setup();
+    let id = s.report();
+    s.client.cancel_job(&id, &hash(&s.env, 40));
+    assert_eq!(
+        s.env.events().all(),
+        [JobCancelled {
+            job_id: id,
+            water_point_id: s.point.clone(),
+            reason_reference: hash(&s.env, 40),
+        }
+        .to_xdr(&s.env, &s.contract_id)]
+    );
 }
 
 // ---- Events ----

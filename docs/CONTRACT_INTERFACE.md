@@ -16,6 +16,7 @@ All IDs and references are `BytesN<32>`: either a random opaque ID or a fingerpr
 | `set_water_point_active(water_point_id, active: bool)` | Inactive points cannot receive new reports. |
 | `assign_job(job_id: u64, technician: Address, verifier: Address)` | Technician ≠ verifier. Also used for reassignment. |
 | `close_job(job_id: u64)` | Only from `Verified`. Frees the water point for new reports. |
+| `cancel_job(job_id: u64, reason_reference)` | Only from `Reported`, `Assigned`, `NeedsRework`. Terminal. Records a fingerprint of the off-chain reason and frees the water point. |
 
 ### Role actions (caller must sign)
 
@@ -29,6 +30,10 @@ All IDs and references are `BytesN<32>`: either a random opaque ID or a fingerpr
 
 `get_admin()`, `is_reporter(address)`, `get_water_point(id)`, `get_job(job_id)`, `get_job_history(job_id) -> Vec<AuditEntry>`, `job_count()`.
 
+## Statuses
+
+`Reported`, `Assigned`, `RepairSubmitted`, `NeedsRework`, `Verified`, `Closed`, `Cancelled`. `Closed` and `Cancelled` are terminal. New variants are only ever appended.
+
 ## Errors
 
 | Code | Name | Meaning |
@@ -41,7 +46,7 @@ All IDs and references are `BytesN<32>`: either a random opaque ID or a fingerpr
 | 6 | `ReporterNotAuthorized` | caller is not an authorised reporter |
 | 7 | `OpenJobExists` | water point already has an open job |
 | 8 | `JobNotFound` | unknown job ID |
-| 9 | `InvalidTransition` | action not allowed in the job's current status |
+| 9 | `InvalidTransition` | action not allowed in the job's current status (including any change to a `Closed` or `Cancelled` job) |
 | 10 | `SameTechnicianAndVerifier` | role-separation violation |
 | 11 | `NotAssignedTechnician` | caller is not the job's technician |
 | 12 | `NotAssignedVerifier` | caller is not the job's verifier |
@@ -62,6 +67,7 @@ Each event's first topic is its snake_case name, and its second topic is the ind
 | `repair_approved` | `job_id` | `verifier`, `verification_reference` |
 | `repair_returned` | `job_id` | `verifier`, `verification_reference` |
 | `job_closed` | `job_id` | `water_point_id` |
+| `job_cancelled` | `job_id` | `water_point_id`, `reason_reference` |
 
 Payloads contain only addresses, opaque IDs and fingerprints. Never emit personal data.
 

@@ -3,7 +3,8 @@
 #
 # Deploys a fresh contract instance (you become its admin), then walks one job
 # through report -> assign -> submit -> reject -> resubmit -> approve -> close,
-# and prints the final job state and audit history.
+# files and cancels a second (mistaken) report, and prints the final state and
+# audit history of both jobs.
 #
 # Synthetic data only: every ID and evidence reference is random bytes.
 # Never point this at mainnet or use real water-point or personal data.
@@ -91,10 +92,19 @@ if invoke "$TECHNICIAN" close_job --job_id "$JOB" >/dev/null 2>&1; then
 fi
 echo "rejected as expected"
 
-step "Final job state"
+step "Report a mistaken fault, then cancel it"
+CANCELLED=$(invoke "$REPORTER" report_fault --reporter "$REPORTER" \
+  --water_point_id "$WATER_POINT" --fault_reference "$(rand32)")
+echo "job_id: $CANCELLED"
+invoke "$ADMIN" cancel_job --job_id "$CANCELLED" --reason_reference "$(rand32)"
+
+step "Final job states"
 read_only get_job --job_id "$JOB"
+read_only get_job --job_id "$CANCELLED"
 
 step "Audit history"
 read_only get_job_history --job_id "$JOB"
+read_only get_job_history --job_id "$CANCELLED"
 
-printf '\nDone. Contract %s, job %s, expected status "Closed" with 7 history entries.\n' "$CONTRACT" "$JOB"
+printf '\nDone. Contract %s.\n' "$CONTRACT"
+printf 'Expected: job %s "Closed" with 7 history entries; job %s "Cancelled" with 2.\n' "$JOB" "$CANCELLED"

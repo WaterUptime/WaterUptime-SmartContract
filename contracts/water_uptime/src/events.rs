@@ -80,3 +80,12 @@ pub struct JobClosed {
     pub job_id: u64,
     pub water_point_id: BytesN<32>,
 }
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JobCancelled {
+    #[topic]
+    pub job_id: u64,
+    pub water_point_id: BytesN<32>,
+    pub reason_reference: BytesN<32>,
+}
