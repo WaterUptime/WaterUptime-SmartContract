@@ -50,6 +50,8 @@ contracts/water_uptime/src/
 ├── events.rs    # #[contractevent] definitions
 ├── storage.rs   # storage access and TTL management
 └── test.rs      # unit tests (positive, negative, auth, events)
+scripts/testnet-demo.sh   # deploy + end-to-end synthetic job on testnet
+docs/                     # interface reference and testnet deployment
 ```
 
 ## Development
@@ -65,14 +67,14 @@ cargo fmt --all && cargo clippy --all-targets -- -D warnings
 
 CI runs fmt, clippy, tests, and a WASM build on every push and PR.
 
-## Testnet demo (synthetic data only)
+## Testnet (synthetic data only)
+
+A shared instance is deployed on Stellar testnet. See [`docs/TESTNET.md`](docs/TESTNET.md) for the contract ID, role addresses, demo transactions, and TypeScript bindings for the frontend.
+
+To deploy your own instance and run a full synthetic job (including a rework cycle):
 
 ```bash
-stellar keys generate admin --network testnet --fund
-stellar contract deploy --wasm target/wasm32v1-none/release/water_uptime.wasm \
-  --source admin --network testnet --alias water_uptime
-stellar contract invoke --id water_uptime --source admin --network testnet -- \
-  initialize --admin admin
+scripts/testnet-demo.sh
 ```
 
 Never use real funds, real water-point identifiers, or personal data.
