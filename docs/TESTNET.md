@@ -7,10 +7,11 @@
 | | |
 |---|---|
 | Network | Stellar testnet (`Test SDF Network ; September 2015`) |
-| Contract ID | `CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO` |
-| Built from | commit `f31863f` (PR #1), `soroban-sdk 27`, `stellar 27.1.0` |
-| Deployed | 2026-10-27 |
-| Explorer | [Stellar Lab](https://lab.stellar.org/r/testnet/contract/CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO) |
+| Contract ID | `CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX` |
+| Source | tag [`v0.1.1`](https://github.com/WaterUptime/WaterUptime-SmartContract/tree/v0.1.1), commit `38760fa` |
+| WASM | [`water_uptime_v0.1.1.wasm`](https://github.com/WaterUptime/WaterUptime-SmartContract/releases/tag/v0.1.1_water_uptime_cli28.1.0), SHA-256 `02c7734bf6457a2dd5500f1a56d034aa9192fbe6b97cc95005d73ab106d4cff8`, attested build (Stellar CLI 28.1.0, `--optimize`) |
+| Deployed | 2026-10-27, transactions [b3fe6e24…](https://stellar.expert/explorer/testnet/tx/b3fe6e248c4322dcf70868b9fd3dac87303dd189200feae51cdb644f196976cf) (upload) and [4c98ea83…](https://stellar.expert/explorer/testnet/tx/4c98ea83f04b5cdb685b9453db4fdb0a69a03760d97cdb541340a93a609a94b4) (create) |
+| Explorer | [Stellar Expert](https://stellar.expert/explorer/testnet/contract/CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX) (source verified) · [Stellar Lab](https://lab.stellar.org/r/testnet/contract/CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX) |
 
 ### Synthetic role accounts
 
@@ -25,26 +26,35 @@ Only the maintainer holds these keys. Anyone can **read** this deployment. To **
 
 ### Demo jobs
 
-Both jobs are on water point `bd21852e…3ee766`.
+Both jobs are on water point `72d6e786…193d27`.
 
 **Job 1** went through the full lifecycle, including one rework cycle:
 
 | Step | Transaction |
 |---|---|
-| `report_fault` | [d4731e1e…](https://stellar.expert/explorer/testnet/tx/d4731e1ec82d7eaa8fdcce1c045e29b4449874204836016e0cad9bf80c8770e8) |
-| `assign_job` | [8a421b10…](https://stellar.expert/explorer/testnet/tx/8a421b10b0ab4d096f850bf8d1ea77ed65e536696fedd40bc50fc74f3c8728b5) |
-| `submit_repair` | [05edbe5b…](https://stellar.expert/explorer/testnet/tx/05edbe5bd8484bf2951e48fc9c9d55713ba5e54e2f085f8765bb34d4b306e406) |
-| `verify_repair` (rejected) | [3b744a67…](https://stellar.expert/explorer/testnet/tx/3b744a675432f151a376520af322f9e367143354b8a57938cbd1c9b3572d7527) |
-| `submit_repair` (rework) | [6b6a7934…](https://stellar.expert/explorer/testnet/tx/6b6a7934a0f7dfffb5bcf781c4b2fd6cf0b23ae4822615f565a658f5b55639d2) |
-| `verify_repair` (approved) | [11735f3c…](https://stellar.expert/explorer/testnet/tx/11735f3cdd6b5dc705d701496b0a24cc6dd2d00d6db076efbc6b63aed7e7fa79) |
-| `close_job` | [217798f4…](https://stellar.expert/explorer/testnet/tx/217798f44f110551b63b5bc0962ec60bdd85625eddd95662e1ac1cb79a36f483) |
+| `initialize` | [1789ab57…](https://stellar.expert/explorer/testnet/tx/1789ab57930d26e080570f6d8f4dba494029fbb00b4796e5f91dead8bf7809e3) |
+| `set_reporter` | [b81a35a0…](https://stellar.expert/explorer/testnet/tx/b81a35a05ac65154c67ff438a4098f1cf1370cc192551ff4dcaea789646691af) |
+| `register_water_point` | [7dd83e94…](https://stellar.expert/explorer/testnet/tx/7dd83e944634352d12d90056111504130b06094fba702c92df2261f65e8c3106) |
+| `report_fault` | [414b35cd…](https://stellar.expert/explorer/testnet/tx/414b35cd3753aa6572de37c60b5af176e0483ae73a3e668e1ac142baf82b1e4d) |
+| `assign_job` | [f4637139…](https://stellar.expert/explorer/testnet/tx/f463713963080f7ec1df930c6b45cd86e79a01583ce5cdc84c7fdb076dc3e0fb) |
+| `submit_repair` | [a95c8d9a…](https://stellar.expert/explorer/testnet/tx/a95c8d9aaadbf5fc2d65a4280c64f33784336bce24292fddd82650dc86afe67f) |
+| `verify_repair` (rejected) | [5330f568…](https://stellar.expert/explorer/testnet/tx/5330f568f9e999c147810c59480c46a6b1f70c79f5b2fdb44474892aefb79607) |
+| `submit_repair` (rework) | [d3027ade…](https://stellar.expert/explorer/testnet/tx/d3027adea895bdbbb38c3b235d96500b6ceb40ee1a8c893c0ccf6473c58fe535) |
+| `verify_repair` (approved) | [c4dd8d41…](https://stellar.expert/explorer/testnet/tx/c4dd8d41a75864584a0f7725b07249edd36350bd42ee50f0e3303513fdee67bd) |
+| `close_job` | [30e25c2d…](https://stellar.expert/explorer/testnet/tx/30e25c2df67038d682217ef1bff00d2996716f0c53792935d62d2e44ea8669ef) |
 
 **Job 2** is a mistaken report, cancelled by the coordinator:
 
 | Step | Transaction |
 |---|---|
-| `report_fault` | [a0b41774…](https://stellar.expert/explorer/testnet/tx/a0b41774df6c8ec0da556d12bfc70500cfb5801565212be2d54a142e047762df) |
-| `cancel_job` | [790c0092…](https://stellar.expert/explorer/testnet/tx/790c0092434859b96e3aceacfbb7bccc6b2a313159100aaaded82a0616b0bcbe) |
+| `report_fault` | [309dd1d5…](https://stellar.expert/explorer/testnet/tx/309dd1d547708a2cf8a593d9b2191002cd7b62efa009d6d56a38d777a7454bae) |
+| `cancel_job` | [68d8d9f5…](https://stellar.expert/explorer/testnet/tx/68d8d9f5724655a9e3102b2d6589a39c1740f2f19329a4532881e75da6ea746a) |
+
+### Previous deployments
+
+| Contract ID | Source | Status |
+|---|---|---|
+| `CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO` | `v0.1.0` (reproducible local build, not explorer-verified) | Superseded by the v0.1.1 deployment; left in place, read-only history |
 
 ## Reading the deployment
 
@@ -53,7 +63,7 @@ Read-only calls are simulated rather than submitted, so they are free. Any funde
 ```bash
 stellar keys generate reader --network testnet --fund   # once
 
-CONTRACT=CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO
+CONTRACT=CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX
 stellar contract invoke --id $CONTRACT --source reader --network testnet --send=no -- job_count
 stellar contract invoke --id $CONTRACT --source reader --network testnet --send=no -- get_job --job_id 1
 stellar contract invoke --id $CONTRACT --source reader --network testnet --send=no -- get_job_history --job_id 1
@@ -71,7 +81,7 @@ Generate TypeScript bindings from the deployed contract:
 ```bash
 stellar contract bindings typescript \
   --network testnet \
-  --contract-id CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO \
+  --contract-id CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX \
   --output-dir packages/water_uptime
 ```
 
@@ -94,6 +104,9 @@ The script creates four funded testnet keys (`wu-admin`, `wu-reporter`, `wu-tech
 
 After contract changes are merged to `main`:
 
-1. Run `scripts/testnet-demo.sh` from `main` with the maintainer keys.
-2. Update the contract ID, commit, date and transaction links in this file.
-3. Tell the frontend team, since bindings must be regenerated whenever the interface changes.
+1. Bump the crate version in `contracts/water_uptime/Cargo.toml` (in the PR), then push a matching tag, e.g. `git tag -a v0.1.2 && git push origin v0.1.2`. The **Build and Release** workflow builds and attests the WASM and publishes a release.
+2. Download the release asset, check its hash and attestation, and deploy **that file**:
+   `stellar contract deploy --wasm water_uptime_vX.Y.Z.wasm --source wu-admin --network testnet`
+3. Run the demo against it: `CONTRACT_ID=<new id> scripts/testnet-demo.sh`.
+4. Check that Stellar Expert shows the source as verified.
+5. Update this file and the README, move the old ID to *Previous deployments*, and update the frontend's default contract ID and the hub's [compatibility table](https://github.com/WaterUptime/WaterUptime#compatibility).
