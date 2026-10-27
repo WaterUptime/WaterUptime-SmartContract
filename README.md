@@ -73,7 +73,29 @@ CI runs fmt, clippy, tests, and a WASM build on every push and PR.
 
 ## Testnet (synthetic data only)
 
-A shared instance is deployed on Stellar testnet. See [`docs/TESTNET.md`](docs/TESTNET.md) for the contract ID, role addresses, demo transactions, and TypeScript bindings for the frontend.
+A shared instance is deployed on Stellar testnet.
+
+| | |
+|---|---|
+| Contract address | [`CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO`](https://stellar.expert/explorer/testnet/contract/CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO) |
+| Explorer | [Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO) · [Stellar Lab](https://lab.stellar.org/r/testnet/contract/CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO) |
+| Network | Stellar testnet |
+| Source | [`v0.1.0`](https://github.com/WaterUptime/WaterUptime-SmartContract/releases/tag/v0.1.0) |
+| WASM hash (SHA-256) | `b7043760e6fd15064457b3b8387902120c0dcd52516f23bda64b9d93cac1ab49` |
+| Build verification | ✅ Reproducible: building `v0.1.0` gives the same hash as the deployed WASM (checked 2026-10-27) · ⚠️ Not yet source-verified on Stellar Expert, which requires an attested GitHub Actions build |
+
+Check it yourself:
+
+```bash
+stellar contract fetch --id CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO \
+  --network testnet --out-file onchain.wasm
+git checkout v0.1.0 && stellar contract build
+sha256sum onchain.wasm target/wasm32v1-none/release/water_uptime.wasm   # hashes should match
+```
+
+The reproducible check above used Rust `1.94.1` and Stellar CLI `27.1.0`; other toolchain versions may produce a different hash.
+
+See [`docs/TESTNET.md`](docs/TESTNET.md) for role addresses, demo transactions, and TypeScript bindings for the frontend.
 
 To deploy your own instance and run a full synthetic job (including a rework cycle):
 
