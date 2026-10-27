@@ -73,27 +73,34 @@ CI runs fmt, clippy, tests, and a WASM build on every push and PR.
 
 ## Testnet (synthetic data only)
 
-A shared instance is deployed on Stellar testnet.
+A shared instance is deployed on Stellar testnet, and its source is **verified on Stellar Expert**.
 
 | | |
 |---|---|
-| Contract address | [`CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO`](https://stellar.expert/explorer/testnet/contract/CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO) |
-| Explorer | [Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO) · [Stellar Lab](https://lab.stellar.org/r/testnet/contract/CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO) |
+| Contract address | [`CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX`](https://stellar.expert/explorer/testnet/contract/CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX) |
+| Explorer | [Stellar Expert](https://stellar.expert/explorer/testnet/contract/CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX) · [Stellar Lab](https://lab.stellar.org/r/testnet/contract/CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX) |
 | Network | Stellar testnet |
-| Source | [`v0.1.0`](https://github.com/WaterUptime/WaterUptime-SmartContract/releases/tag/v0.1.0) |
-| WASM hash (SHA-256) | `b7043760e6fd15064457b3b8387902120c0dcd52516f23bda64b9d93cac1ab49` |
-| Build verification | ✅ Reproducible: building `v0.1.0` gives the same hash as the deployed WASM (checked 2026-10-27) · ⚠️ Not yet source-verified on Stellar Expert, which requires an attested GitHub Actions build |
+| Source | [`v0.1.1`](https://github.com/WaterUptime/WaterUptime-SmartContract/tree/v0.1.1) (commit `38760fa`) |
+| WASM | [`water_uptime_v0.1.1.wasm`](https://github.com/WaterUptime/WaterUptime-SmartContract/releases/tag/v0.1.1_water_uptime_cli28.1.0) · SHA-256 `02c7734bf6457a2dd5500f1a56d034aa9192fbe6b97cc95005d73ab106d4cff8` |
+| Build verification | ✅ **Source verified on Stellar Expert**: built in GitHub Actions by [`stellar-expert/soroban-build-workflow`](https://github.com/stellar-expert/soroban-build-workflow) with a [build attestation](https://github.com/WaterUptime/WaterUptime-SmartContract/attestations) (see [`.github/workflows/release.yml`](.github/workflows/release.yml)) |
 
 Check it yourself:
 
 ```bash
-stellar contract fetch --id CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO \
+# 1. The deployed WASM is the attested release asset
+stellar contract fetch --id CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX \
   --network testnet --out-file onchain.wasm
-git checkout v0.1.0 && stellar contract build
-sha256sum onchain.wasm target/wasm32v1-none/release/water_uptime.wasm   # hashes should match
+gh release download v0.1.1_water_uptime_cli28.1.0 -R WaterUptime/WaterUptime-SmartContract
+sha256sum onchain.wasm water_uptime_v0.1.1.wasm        # hashes should match
+
+# 2. The release asset was built from this repository by the pinned workflow
+gh attestation verify water_uptime_v0.1.1.wasm -R WaterUptime/WaterUptime-SmartContract
+
+# 3. The WASM names its source repository
+stellar contract info meta --wasm onchain.wasm         # source_repo: github:WaterUptime/WaterUptime-SmartContract
 ```
 
-The reproducible check above used Rust `1.94.1` and Stellar CLI `27.1.0`; other toolchain versions may produce a different hash.
+Release builds use `stellar contract build --optimize` with Stellar CLI 28.1.0 and source metadata, so a plain local build won't produce the same hash. Verify against the release asset instead.
 
 See [`docs/TESTNET.md`](docs/TESTNET.md) for role addresses, demo transactions, and TypeScript bindings for the frontend.
 
