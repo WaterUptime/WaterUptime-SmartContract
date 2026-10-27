@@ -85,7 +85,7 @@ Never use real funds, real water-point identifiers, or personal data.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Every PR that changes state transitions or authorisation must include positive and negative tests.
+See the organisation-wide [contributing guide](https://github.com/WaterUptime/.github/blob/main/CONTRIBUTING.md), [security policy](https://github.com/WaterUptime/.github/blob/main/SECURITY.md) and [Code of Conduct](https://github.com/WaterUptime/.github/blob/main/CODE_OF_CONDUCT.md). Report vulnerabilities privately via **Security → Report a vulnerability**. Every PR that changes state transitions or authorisation must include positive and negative tests.
 
 ## License
 
