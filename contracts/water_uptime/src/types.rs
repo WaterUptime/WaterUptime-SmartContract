@@ -2,7 +2,9 @@ use soroban_sdk::{contracterror, contracttype, Address, BytesN};
 
 /// Maximum number of audit entries kept on-chain for a single job.
 ///
-/// Bounds storage growth when a job loops through rework many times.
+/// Bounds storage growth when a job loops through rework many times. Room is
+/// always kept for the entries needed to close or cancel the job, so the limit
+/// stops further rework but never leaves a job stuck open.
 pub const MAX_HISTORY_LEN: u32 = 50;
 
 #[contracterror]

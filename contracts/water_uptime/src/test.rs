@@ -511,17 +511,14 @@ fn reassignment_after_submission_rejected() {
 
 #[test]
 fn history_is_bounded() {
+    // With MAX_HISTORY_LEN = 50: report + assign = 2 entries, each rework
+    // cycle adds 2. A submission needs room for itself plus a decision and a
+    // close or cancel, so it is accepted only while history has at most 47
+    // entries. That allows 23 cycles (48 entries), then refuses the 24th.
+    assert_eq!(types::MAX_HISTORY_LEN, 50);
     let s = setup();
-    let id = s.assigned_job();
-    // 2 entries so far; each rework loop adds 2 more.
-    let loops = (types::MAX_HISTORY_LEN - 2) / 2;
-    for _ in 0..loops {
-        s.client
-            .submit_repair(&s.technician, &id, &hash(&s.env, 20));
-        s.client
-            .verify_repair(&s.verifier, &id, &hash(&s.env, 30), &false);
-    }
-    assert_eq!(s.client.get_job_history(&id).len(), types::MAX_HISTORY_LEN);
+    let id = s.reworked_job(23).unwrap();
+    assert_eq!(s.history_len(id), 48);
     assert_eq!(
         s.client
             .try_submit_repair(&s.technician, &id, &hash(&s.env, 20)),
@@ -529,6 +526,145 @@ fn history_is_bounded() {
     );
     // The failed call was rolled back.
     assert_eq!(s.status(id), JobStatus::NeedsRework);
+    assert_eq!(s.history_len(id), 48);
+
+    // One cycle earlier the job can still finish either way within the limit.
+    let s = setup();
+    let id = s.reworked_job(22).unwrap();
+    s.client
+        .submit_repair(&s.technician, &id, &hash(&s.env, 20));
+    assert_eq!(s.history_len(id), 47);
+    s.client
+        .verify_repair(&s.verifier, &id, &hash(&s.env, 30), &true);
+    s.client.close_job(&id);
+    assert_eq!(s.history_len(id), 49);
+
+    // Reassignment needs room for itself and a cancellation: accepted at 48,
+    // and the cancellation then uses the 50th and final entry.
+    let s = setup();
+    let id = s.reworked_job(23).unwrap();
+    s.client
+        .assign_job(&id, &Address::generate(&s.env), &s.verifier);
+    assert_eq!(s.history_len(id), 49);
+    s.client.cancel_job(&id, &hash(&s.env, 40));
+    assert_eq!(s.history_len(id), types::MAX_HISTORY_LEN);
+    assert_eq!(s.status(id), JobStatus::Cancelled);
+}
+
+// ---- Behaviour near the history limit ----
+
+impl Setup<'_> {
+    /// Assigned job taken through up to `loops` submit/return cycles
+    /// (2 + 2 * loops entries). Returns `None` if the contract refused a step.
+    fn reworked_job(&self, loops: u32) -> Option<u64> {
+        let id = self.assigned_job();
+        for _ in 0..loops {
+            self.client
+                .try_submit_repair(&self.technician, &id, &hash(&self.env, 20))
+                .ok()?
+                .ok()?;
+            self.client
+                .try_verify_repair(&self.verifier, &id, &hash(&self.env, 30), &false)
+                .ok()?
+                .ok()?;
+        }
+        Some(id)
+    }
+
+    fn history_len(&self, id: u64) -> u32 {
+        self.client.get_job_history(&id).len()
+    }
+}
+
+/// Every way to finish a job from a given point in its life.
+#[derive(Clone, Copy, Debug)]
+enum Finish {
+    Cancel,
+    SubmitApproveClose,
+    SubmitReturnCancel,
+    ReassignCancel,
+}
+
+#[test]
+fn every_job_can_still_be_finished_near_the_history_limit() {
+    // For each number of rework cycles the contract accepts, every path to a
+    // terminal status must work, and history must never exceed the limit.
+    // Without a reserve for the final steps, a job could get stuck open and
+    // block its water point for good.
+    let mut cycles = 0;
+    while setup().reworked_job(cycles).is_some() {
+        for finish in [
+            Finish::Cancel,
+            Finish::SubmitApproveClose,
+            Finish::SubmitReturnCancel,
+            Finish::ReassignCancel,
+        ] {
+            let s = setup();
+            let id = s.reworked_job(cycles).unwrap();
+            let (a, v, h) = (&s.technician, &s.verifier, |n| hash(&s.env, n));
+            match finish {
+                Finish::Cancel => {
+                    s.client.cancel_job(&id, &h(40));
+                }
+                Finish::SubmitApproveClose | Finish::SubmitReturnCancel => {
+                    // A refused submission is fine; a stuck job is not.
+                    if s.client.try_submit_repair(a, &id, &h(20)).is_err() {
+                        s.client.cancel_job(&id, &h(40));
+                    } else if matches!(finish, Finish::SubmitApproveClose) {
+                        s.client.verify_repair(v, &id, &h(30), &true);
+                        s.client.close_job(&id);
+                    } else {
+                        s.client.verify_repair(v, &id, &h(30), &false);
+                        s.client.cancel_job(&id, &h(40));
+                    }
+                }
+                Finish::ReassignCancel => {
+                    let other = Address::generate(&s.env);
+                    let _ = s.client.try_assign_job(&id, &other, v);
+                    s.client.cancel_job(&id, &h(40));
+                }
+            }
+            let status = s.status(id);
+            assert!(
+                matches!(status, JobStatus::Closed | JobStatus::Cancelled),
+                "{cycles} cycles, {finish:?}: ended {status:?}"
+            );
+            assert!(s.history_len(id) <= types::MAX_HISTORY_LEN);
+            // The water point is free for the next report.
+            assert!(s.client.get_water_point(&s.point).open_job.is_none());
+        }
+        cycles += 1;
+    }
+    // The limit really does stop endless rework.
+    assert!(cycles > 0 && cycles < types::MAX_HISTORY_LEN);
+}
+
+#[test]
+fn submission_refused_when_it_would_leave_no_room_to_finish() {
+    let s = setup();
+    let id = s.assigned_job();
+    while s
+        .client
+        .try_submit_repair(&s.technician, &id, &hash(&s.env, 20))
+        .is_ok()
+    {
+        s.client
+            .verify_repair(&s.verifier, &id, &hash(&s.env, 30), &false);
+    }
+    let len = s.history_len(id);
+    assert_eq!(
+        s.client
+            .try_submit_repair(&s.technician, &id, &hash(&s.env, 20)),
+        Err(Ok(Error::HistoryLimitReached))
+    );
+    // Rolled back, and the coordinator can still cancel and start afresh.
+    assert_eq!(s.history_len(id), len);
+    assert_eq!(s.status(id), JobStatus::NeedsRework);
+    s.client.cancel_job(&id, &hash(&s.env, 40));
+    assert_eq!(s.history_len(id), len + 1);
+    assert!(s.history_len(id) <= types::MAX_HISTORY_LEN);
+    let next = s.report();
+    assert_eq!(s.status(next), JobStatus::Reported);
 }
 
 // ---- Cancellation ----
@@ -719,5 +855,81 @@ fn event_topics_use_documented_names() {
     assert_eq!(
         body.topics[0],
         ScVal::Symbol(ScSymbol("fault_reported".try_into().unwrap()))
+    );
+}
+
+// ---- Retention: TTL and restoration ----
+
+impl Setup<'_> {
+    fn persistent_ttl(&self, key: &types::DataKey) -> u32 {
+        use soroban_sdk::testutils::storage::Persistent as _;
+        self.env.as_contract(&self.contract_id, || {
+            self.env.storage().persistent().get_ttl(key)
+        })
+    }
+
+    fn instance_ttl(&self) -> u32 {
+        use soroban_sdk::testutils::storage::Instance as _;
+        self.env.as_contract(&self.contract_id, || {
+            self.env.storage().instance().get_ttl()
+        })
+    }
+
+    fn advance_ledgers(&self, n: u32) {
+        let seq = self.env.ledger().sequence();
+        self.env.ledger().set_sequence_number(seq + n);
+    }
+}
+
+#[test]
+fn closing_a_job_keeps_its_records_alive_for_120_days() {
+    use types::DataKey;
+    let s = setup();
+    let id = s.verified_job();
+    s.client.close_job(&id);
+    assert_eq!(
+        s.persistent_ttl(&DataKey::Job(id)),
+        storage::PERSISTENT_BUMP
+    );
+    assert_eq!(
+        s.persistent_ttl(&DataKey::History(id)),
+        storage::PERSISTENT_BUMP
+    );
+    assert_eq!(
+        s.persistent_ttl(&DataKey::WaterPoint(s.point.clone())),
+        storage::PERSISTENT_BUMP
+    );
+    assert_eq!(s.instance_ttl(), storage::INSTANCE_BUMP);
+    assert_eq!(storage::PERSISTENT_BUMP, 120 * storage::DAY_IN_LEDGERS);
+
+    // Nothing extends a finished job by itself: its TTL only counts down.
+    s.advance_ledgers(storage::DAY_IN_LEDGERS);
+    assert_eq!(
+        s.persistent_ttl(&DataKey::History(id)),
+        storage::PERSISTENT_BUMP - storage::DAY_IN_LEDGERS
+    );
+}
+
+#[test]
+fn archived_history_is_restored_intact() {
+    // Let a closed job's records (and the contract instance) pass their TTL
+    // without any activity. The test host, like the network since protocol 23,
+    // restores archived persistent entries when a transaction accesses them.
+    // On the network that restoration is paid for by a submitted transaction.
+    use types::DataKey;
+    let s = setup();
+    let id = s.verified_job();
+    s.client.close_job(&id);
+    let job = s.client.get_job(&id);
+    let history = s.client.get_job_history(&id);
+    assert_eq!(history.len(), 5);
+
+    s.advance_ledgers(storage::PERSISTENT_BUMP + 1);
+    assert_eq!(s.client.get_job(&id), job);
+    assert_eq!(s.client.get_job_history(&id), history);
+    // The access restored the entries and extended them again.
+    assert_eq!(
+        s.persistent_ttl(&DataKey::History(id)),
+        storage::PERSISTENT_BUMP
     );
 }

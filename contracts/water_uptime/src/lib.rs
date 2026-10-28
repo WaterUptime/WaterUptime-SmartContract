@@ -47,6 +47,19 @@ fn release_water_point(env: &Env, job: &MaintenanceJob) {
     }
 }
 
+/// Fewest audit entries a job in `status` still needs to reach `Closed` or
+/// `Cancelled`: a submitted repair needs a decision and then a close or cancel.
+fn entries_to_finish(status: JobStatus) -> u32 {
+    match status {
+        JobStatus::Closed | JobStatus::Cancelled => 0,
+        JobStatus::Reported
+        | JobStatus::Assigned
+        | JobStatus::NeedsRework
+        | JobStatus::Verified => 1,
+        JobStatus::RepairSubmitted => 2,
+    }
+}
+
 fn record(
     env: &Env,
     job: &mut MaintenanceJob,
@@ -66,6 +79,7 @@ fn record(
             reference,
             timestamp: now,
         },
+        entries_to_finish(job.status),
     )
 }
 
