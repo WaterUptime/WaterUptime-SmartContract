@@ -7,11 +7,11 @@
 | | |
 |---|---|
 | Network | Stellar testnet (`Test SDF Network ; September 2015`) |
-| Contract ID | `CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX` |
-| Source | tag [`v0.1.1`](https://github.com/WaterUptime/WaterUptime-SmartContract/tree/v0.1.1), commit `38760fa` |
-| WASM | [`water_uptime_v0.1.1.wasm`](https://github.com/WaterUptime/WaterUptime-SmartContract/releases/tag/v0.1.1_water_uptime_cli28.1.0), SHA-256 `02c7734bf6457a2dd5500f1a56d034aa9192fbe6b97cc95005d73ab106d4cff8`, attested build (Stellar CLI 28.1.0, `--optimize`) |
-| Deployed | 2026-10-27, transactions [b3fe6e24…](https://stellar.expert/explorer/testnet/tx/b3fe6e248c4322dcf70868b9fd3dac87303dd189200feae51cdb644f196976cf) (upload) and [4c98ea83…](https://stellar.expert/explorer/testnet/tx/4c98ea83f04b5cdb685b9453db4fdb0a69a03760d97cdb541340a93a609a94b4) (create) |
-| Explorer | [Stellar Expert](https://stellar.expert/explorer/testnet/contract/CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX) (source verified) · [Stellar Lab](https://lab.stellar.org/r/testnet/contract/CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX) |
+| Contract ID | `CDO5G5UK4YLRCBXWJI7GSJYTPXZSZNCAQ4ILAKZHYUBA64QWWCUTF22Z` |
+| Source | tag [`v0.2.0`](https://github.com/WaterUptime/WaterUptime-SmartContract/tree/v0.2.0), commit `9b14788` |
+| WASM | [`water_uptime_v0.2.0.wasm`](https://github.com/WaterUptime/WaterUptime-SmartContract/releases/tag/v0.2.0_water_uptime_cli28.1.0), SHA-256 `6ac0e9d8eb4f9a317f81df5786e663b02f8d6ae835e27bd94f9bb383cdbae3dd`, attested build (Stellar CLI 28.1.0, `--optimize`) |
+| Deployed | 2026-10-29, transactions [e8bbe982…](https://stellar.expert/explorer/testnet/tx/e8bbe982018d197bd58d8b6c045cde6ee240f602dc3fbaea0a681a50d3047ba2) (upload) and [8a9f4463…](https://stellar.expert/explorer/testnet/tx/8a9f4463444ed989a9e2a1da66a6f57282fe7317a2ca7149138b53be4aaf0c7c) (create) |
+| Explorer | [Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDO5G5UK4YLRCBXWJI7GSJYTPXZSZNCAQ4ILAKZHYUBA64QWWCUTF22Z) (source verified) · [Stellar Lab](https://lab.stellar.org/r/testnet/contract/CDO5G5UK4YLRCBXWJI7GSJYTPXZSZNCAQ4ILAKZHYUBA64QWWCUTF22Z) |
 
 ### Synthetic role accounts
 
@@ -26,35 +26,41 @@ Only the maintainer holds these keys. Anyone can **read** this deployment. To **
 
 ### Demo jobs
 
-Both jobs are on water point `72d6e786…193d27`.
+All three jobs are on water point `99d18cce…132b67`.
 
 **Job 1** went through the full lifecycle, including one rework cycle:
 
 | Step | Transaction |
 |---|---|
-| `initialize` | [1789ab57…](https://stellar.expert/explorer/testnet/tx/1789ab57930d26e080570f6d8f4dba494029fbb00b4796e5f91dead8bf7809e3) |
-| `set_reporter` | [b81a35a0…](https://stellar.expert/explorer/testnet/tx/b81a35a05ac65154c67ff438a4098f1cf1370cc192551ff4dcaea789646691af) |
-| `register_water_point` | [7dd83e94…](https://stellar.expert/explorer/testnet/tx/7dd83e944634352d12d90056111504130b06094fba702c92df2261f65e8c3106) |
-| `report_fault` | [414b35cd…](https://stellar.expert/explorer/testnet/tx/414b35cd3753aa6572de37c60b5af176e0483ae73a3e668e1ac142baf82b1e4d) |
-| `assign_job` | [f4637139…](https://stellar.expert/explorer/testnet/tx/f463713963080f7ec1df930c6b45cd86e79a01583ce5cdc84c7fdb076dc3e0fb) |
-| `submit_repair` | [a95c8d9a…](https://stellar.expert/explorer/testnet/tx/a95c8d9aaadbf5fc2d65a4280c64f33784336bce24292fddd82650dc86afe67f) |
-| `verify_repair` (rejected) | [5330f568…](https://stellar.expert/explorer/testnet/tx/5330f568f9e999c147810c59480c46a6b1f70c79f5b2fdb44474892aefb79607) |
-| `submit_repair` (rework) | [d3027ade…](https://stellar.expert/explorer/testnet/tx/d3027adea895bdbbb38c3b235d96500b6ceb40ee1a8c893c0ccf6473c58fe535) |
-| `verify_repair` (approved) | [c4dd8d41…](https://stellar.expert/explorer/testnet/tx/c4dd8d41a75864584a0f7725b07249edd36350bd42ee50f0e3303513fdee67bd) |
-| `close_job` | [30e25c2d…](https://stellar.expert/explorer/testnet/tx/30e25c2df67038d682217ef1bff00d2996716f0c53792935d62d2e44ea8669ef) |
+| `initialize` | [820382c9…](https://stellar.expert/explorer/testnet/tx/820382c95aa2cb529febd274a836c40baaf783d7e748b9ebfa69c6e355c25988) |
+| `set_reporter` | [e3f00240…](https://stellar.expert/explorer/testnet/tx/e3f00240e919588c037d3179ac14bf217a1b365f8c932e7b3cb3ae5d45a8f009) |
+| `register_water_point` | [6723ab82…](https://stellar.expert/explorer/testnet/tx/6723ab822ef578637361fa001a50b495ad40a9201ad360a78c8e6f6f21c39b30) |
+| `report_fault` | [f0591061…](https://stellar.expert/explorer/testnet/tx/f059106178e6cac3c16fae1552186574d8dd99edc27b9e1b9460e58e4322124a) |
+| `assign_job` | [7b92867c…](https://stellar.expert/explorer/testnet/tx/7b92867c291afa294abad447007316af6c91a040ed4cdbb82be21a0b856a93d4) |
+| `submit_repair` | [e6471298…](https://stellar.expert/explorer/testnet/tx/e6471298affd2d6ac5d2529d701d7b81dbbf8f1c72907f81a01b407fe6c01c97) |
+| `verify_repair` (rejected) | [b126451b…](https://stellar.expert/explorer/testnet/tx/b126451ba0a976bc03543082601e6d3154463359fa642ec1b747a0fe2a56f573) |
+| `submit_repair` (rework) | [35531243…](https://stellar.expert/explorer/testnet/tx/3553124322eeb0efb287e9a871b634c0c5b358918e26099afd3e7fb26921bba3) |
+| `verify_repair` (approved) | [ee50b811…](https://stellar.expert/explorer/testnet/tx/ee50b811123090ea78c72709ad017682cad17a4f51a565c6faa98d4d377fcf19) |
+| `close_job` | [0ac61b05…](https://stellar.expert/explorer/testnet/tx/0ac61b05592bae9551d626c61709b523b2c02667f085799ec14c8b41d321f7a8) |
 
 **Job 2** is a mistaken report, cancelled by the coordinator:
 
 | Step | Transaction |
 |---|---|
-| `report_fault` | [309dd1d5…](https://stellar.expert/explorer/testnet/tx/309dd1d547708a2cf8a593d9b2191002cd7b62efa009d6d56a38d777a7454bae) |
-| `cancel_job` | [68d8d9f5…](https://stellar.expert/explorer/testnet/tx/68d8d9f5724655a9e3102b2d6589a39c1740f2f19329a4532881e75da6ea746a) |
+| `report_fault` | [f1f7892e…](https://stellar.expert/explorer/testnet/tx/f1f7892e54d671d75126cc407277b05526506d5a09e14151de5445f9fffee389) |
+| `cancel_job` | [1aa64e1f…](https://stellar.expert/explorer/testnet/tx/1aa64e1f91f9a4693b9babd6e1a5c3f71a8a09edf548b72406550a464388dbcb) |
+
+**Job 3** checks the history limit on-chain (`scripts/testnet-history-limit.sh`, see [RETENTION.md](RETENTION.md#the-history-length-limit)):
+- 23 rework cycles were accepted;
+- the 24th submission was refused with `HistoryLimitReached` (#13) at 48 entries;
+- the coordinator then cancelled the job, with 49 entries, and the water point was free again.
 
 ### Previous deployments
 
 | Contract ID | Source | Status |
 |---|---|---|
-| `CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO` | `v0.1.0` (reproducible local build, not explorer-verified) | Superseded by the v0.1.1 deployment; left in place, read-only history |
+| `CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX` | `v0.1.1` (attested, source verified), WASM `02c7734b…` | Superseded by v0.2.0 on 2026-10-29. Has the [history-limit bug](RETENTION.md#the-history-length-limit). Holds 12 jobs, all closed or cancelled; their records were extended to about 2027-04-19 and will not be extended again |
+| `CDRNO3OO3JCIWRNJIDRPH3UQ6ZX7GRTDQUPMJP4B5IVKUMNUNVHC3ZQO` | `v0.1.0` (reproducible local build, not explorer-verified) | Superseded by the v0.1.1 deployment; not maintained, so its records will be archived (see [RETENTION.md](RETENTION.md)) |
 
 ## Reading the deployment
 
@@ -63,16 +69,17 @@ Read-only calls are simulated rather than submitted, so they are free. Any funde
 ```bash
 stellar keys generate reader --network testnet --fund   # once
 
-CONTRACT=CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX
+CONTRACT=CDO5G5UK4YLRCBXWJI7GSJYTPXZSZNCAQ4ILAKZHYUBA64QWWCUTF22Z
 stellar contract invoke --id $CONTRACT --source reader --network testnet --send=no -- job_count
 stellar contract invoke --id $CONTRACT --source reader --network testnet --send=no -- get_job --job_id 1
 stellar contract invoke --id $CONTRACT --source reader --network testnet --send=no -- get_job_history --job_id 1
 ```
 
 Expected results:
-- `job_count` is `2`.
+- `job_count` is at least `3`. Later tests, such as the frontend's wallet walkthrough, add more jobs.
 - Job 1: `"status":"Closed"`, with 7 history entries: `Reported, Assigned, RepairSubmitted, RepairReturned, RepairSubmitted, RepairApproved, Closed`.
 - Job 2: `"status":"Cancelled"`, with 2 history entries: `Reported, Cancelled`.
+- Job 3: `"status":"Cancelled"`, with 49 history entries: the history-limit check.
 
 ## For the frontend
 
@@ -81,7 +88,7 @@ Generate TypeScript bindings from the deployed contract:
 ```bash
 stellar contract bindings typescript \
   --network testnet \
-  --contract-id CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX \
+  --contract-id CDO5G5UK4YLRCBXWJI7GSJYTPXZSZNCAQ4ILAKZHYUBA64QWWCUTF22Z \
   --output-dir packages/water_uptime
 ```
 
