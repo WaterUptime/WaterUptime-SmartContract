@@ -51,7 +51,7 @@ With a limit of 50, this works out as follows:
 - The coordinator can still reassign once, and can always cancel.
 - Approving the last accepted submission still leaves room to close.
 
-Before this rule (contract `v0.1.1` and earlier), a job could reach 50 entries in `NeedsRework` or `Verified`. It could then be neither cancelled nor closed, and its water point stayed blocked for good. The tests `every_job_can_still_be_finished_near_the_history_limit`, `submission_refused_when_it_would_leave_no_room_to_finish` and `history_is_bounded` cover every path at the boundary.
+Before this rule (contract `v0.1.1` and earlier, fixed in `v0.2.0`), a job could reach 50 entries in `NeedsRework` or `Verified`. It could then be neither cancelled nor closed, and its water point stayed blocked for good. The tests `every_job_can_still_be_finished_near_the_history_limit`, `submission_refused_when_it_would_leave_no_room_to_finish` and `history_is_bounded` cover every path at the boundary.
 
 **When a job hits the limit:**
 1. The coordinator cancels it, with a reason fingerprint.
@@ -90,9 +90,13 @@ Store each export and its SHA-256 off-chain, outside the browser. In a real depl
    Use `{"symbol":"Job"}` for the job record, and `{"vec":[{"symbol":"WaterPoint"},{"bytes":"<hex id>"}]}` for a water point. If the contract instance or its code was archived, restore them too (`--id` with no key, or `--wasm-hash`). Alternatively, any submitted transaction that reads the entry restores it automatically.
 3. Run `verify` again. The restored job and history must match the export exactly.
 
-### Tested on testnet (2026-10-28)
+### Tested on testnet
 
-All three tasks were run against the shared instance `CD5V5AJC…TCLX`, signing with the reporter account, which is not the admin:
+**History limit (2026-10-29, `v0.2.0` instance `CDO5G5UK…TF22Z`):** `scripts/testnet-history-limit.sh` ran job 3 through 23 rework cycles. The 24th submission was refused with `HistoryLimitReached` at 48 entries. The job was then cancelled with 49 entries, and its water point was free again.
+
+**Export, verify and extend (2026-10-28, `v0.1.1` instance)**
+
+All three tasks were run against the then-shared instance `CD5V5AJC…TCLX`, signing with the reporter account, which is not the admin:
 
 - **`export`:** wrote 12 jobs and 7 water points. Every entry showed 118–119 days left.
 - **`verify`:**

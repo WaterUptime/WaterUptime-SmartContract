@@ -79,24 +79,24 @@ A shared instance is deployed on Stellar testnet, and its source is **verified o
 
 | | |
 |---|---|
-| Contract address | [`CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX`](https://stellar.expert/explorer/testnet/contract/CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX) |
-| Explorer | [Stellar Expert](https://stellar.expert/explorer/testnet/contract/CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX) · [Stellar Lab](https://lab.stellar.org/r/testnet/contract/CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX) |
+| Contract address | [`CDO5G5UK4YLRCBXWJI7GSJYTPXZSZNCAQ4ILAKZHYUBA64QWWCUTF22Z`](https://stellar.expert/explorer/testnet/contract/CDO5G5UK4YLRCBXWJI7GSJYTPXZSZNCAQ4ILAKZHYUBA64QWWCUTF22Z) |
+| Explorer | [Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDO5G5UK4YLRCBXWJI7GSJYTPXZSZNCAQ4ILAKZHYUBA64QWWCUTF22Z) · [Stellar Lab](https://lab.stellar.org/r/testnet/contract/CDO5G5UK4YLRCBXWJI7GSJYTPXZSZNCAQ4ILAKZHYUBA64QWWCUTF22Z) |
 | Network | Stellar testnet |
-| Source | [`v0.1.1`](https://github.com/WaterUptime/WaterUptime-SmartContract/tree/v0.1.1) (commit `38760fa`) |
-| WASM | [`water_uptime_v0.1.1.wasm`](https://github.com/WaterUptime/WaterUptime-SmartContract/releases/tag/v0.1.1_water_uptime_cli28.1.0) · SHA-256 `02c7734bf6457a2dd5500f1a56d034aa9192fbe6b97cc95005d73ab106d4cff8` |
+| Source | [`v0.2.0`](https://github.com/WaterUptime/WaterUptime-SmartContract/tree/v0.2.0) (commit `9b14788`) |
+| WASM | [`water_uptime_v0.2.0.wasm`](https://github.com/WaterUptime/WaterUptime-SmartContract/releases/tag/v0.2.0_water_uptime_cli28.1.0) · SHA-256 `6ac0e9d8eb4f9a317f81df5786e663b02f8d6ae835e27bd94f9bb383cdbae3dd` |
 | Build verification | ✅ **Source verified on Stellar Expert**: built in GitHub Actions by [`stellar-expert/soroban-build-workflow`](https://github.com/stellar-expert/soroban-build-workflow) with a [build attestation](https://github.com/WaterUptime/WaterUptime-SmartContract/attestations) (see [`.github/workflows/release.yml`](.github/workflows/release.yml)) |
 
 Check it yourself:
 
 ```bash
 # 1. The deployed WASM is the attested release asset
-stellar contract fetch --id CD5V5AJCWEP25CVVFQ3J5E54AFOB6JFYO4MIWBJSIPECMEM3PHZ6TCLX \
+stellar contract fetch --id CDO5G5UK4YLRCBXWJI7GSJYTPXZSZNCAQ4ILAKZHYUBA64QWWCUTF22Z \
   --network testnet --out-file onchain.wasm
-gh release download v0.1.1_water_uptime_cli28.1.0 -R WaterUptime/WaterUptime-SmartContract
-sha256sum onchain.wasm water_uptime_v0.1.1.wasm        # hashes should match
+gh release download v0.2.0_water_uptime_cli28.1.0 -R WaterUptime/WaterUptime-SmartContract
+sha256sum onchain.wasm water_uptime_v0.2.0.wasm        # hashes should match
 
 # 2. The release asset was built from this repository by the pinned workflow
-gh attestation verify water_uptime_v0.1.1.wasm -R WaterUptime/WaterUptime-SmartContract
+gh attestation verify water_uptime_v0.2.0.wasm -R WaterUptime/WaterUptime-SmartContract
 
 # 3. The WASM names its source repository
 stellar contract info meta --wasm onchain.wasm         # source_repo: github:WaterUptime/WaterUptime-SmartContract
