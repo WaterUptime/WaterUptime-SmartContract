@@ -5,7 +5,7 @@ use crate::types::{AuditEntry, DataKey, Error, MaintenanceJob, WaterPoint, MAX_H
 // TTLs, in ledgers (~5 s each). Each write, and each read inside a submitted
 // transaction, extends the entries it touches; simulated reads do not.
 // See docs/RETENTION.md.
-pub(crate) const DAY_IN_LEDGERS: u32 = 17_280;
+pub(crate) const DAY_IN_LEDGERS: u32 = day_in_ledgers();
 pub(crate) const INSTANCE_BUMP: u32 = 30 * DAY_IN_LEDGERS;
 const INSTANCE_THRESHOLD: u32 = INSTANCE_BUMP - DAY_IN_LEDGERS;
 pub(crate) const PERSISTENT_BUMP: u32 = 120 * DAY_IN_LEDGERS;
@@ -127,4 +127,16 @@ pub fn append_history(
     env.storage().persistent().set(&key, &history);
     bump_persistent(env, &key);
     Ok(())
+}
+
+// Test builds only (scripts/local-archival-test.sh): with the `short-ttl`
+// feature a "day" is 4 ledgers, so records archive within minutes on a local
+// network. Never released. Kept at the end of the file so the default build is
+// byte-identical to one without the feature.
+const fn day_in_ledgers() -> u32 {
+    if cfg!(feature = "short-ttl") {
+        4
+    } else {
+        17_280
+    }
 }

@@ -6,7 +6,7 @@ How long WaterUptime's on-chain audit records last, what can make them unavailab
 
 ## What the contract stores, and for how long
 
-Soroban charges rent for stored data. Every entry has a time to live (TTL) in ledgers (about 5 seconds each). When its TTL runs out, the entry is **archived**. An archived entry is not deleted, but it can't be read until it is restored.
+Soroban charges rent for stored data. Every entry has a time to live (TTL) in ledgers (about 5 seconds each). When its TTL runs out, the entry is **archived**. An archived entry is not deleted, and simulated reads still return it today, but it must be restored before a transaction can use it.
 
 | Entry | Holds | TTL set by the contract | Extended when |
 |---|---|---|---|
@@ -25,14 +25,17 @@ The network caps any TTL at 3,110,400 ledgers (about 180 days, testnet protocol 
 
 ### What archived means
 
-Since protocol 23, an archived persistent entry keeps its contents. It is restored in one of two ways:
+Since protocol 23, an archived persistent entry keeps its contents in the network's archive. This is what we observed with genuinely archived WaterUptime records (see [tested](#tested-on-a-local-network) below):
 
-- **Automatically,** when a submitted transaction touches it. The submitter pays the restoration fee.
-- **Explicitly,** with a restore operation (`stellar contract restore`). Any account can submit it.
+- **RPC reports it as archived:** `liveUntilLedgerSeq` is 0.
+- **It can still be read by simulation.** That covers the web app's testnet view, `stellar contract invoke --send=no`, and `audit-export.sh export` and `verify`. They return the archived job and history unchanged, without restoring anything. This is how RPC behaves today, not a guarantee: it relies on RPC serving archived state, and later protocol changes to how archived state is stored could require restoring first.
+- **A submitted transaction that touches it restores it automatically.** The submitter pays the restoration fee.
+- **An explicit restore makes it live again.** Use `audit-export.sh restore`, or `stellar contract restore` directly; any account can submit it.
+- **A restored entry gets only the network's minimum TTL:** about 7 days on testnet. Extend it straight after restoring.
 
-Tested in `archived_history_is_restored_intact`. The Soroban test host, like the network, restores archived entries on access, and the test checks that the job and its history come back unchanged.
+Unit test `archived_history_is_restored_intact` covers the same behaviour in the Soroban test host.
 
-**Not yet exercised on testnet:** restoring a genuinely archived WaterUptime entry. The minimum persistent TTL on testnet is about 7 days and the contract sets 120, so no entry here has archived yet. The restore command was run against a live entry, where it is a no-op (transaction [`38ce19eb…`](https://stellar.expert/explorer/testnet/tx/38ce19eb683b9c391d5322beb3c561083d374c732db37ecf772bb56a58e4c3b4)).
+**Not yet exercised on testnet,** because nothing there has archived. A new entry lives at least about 7 days and the contract extends its records to 120 days, so archival takes months. The first natural case will be the superseded `v0.1.0` instance (`CDRNO3…`), which nobody extends: its contract instance archives around 2026-11-26 and its job records around 2027-02-24. [#15](https://github.com/WaterUptime/WaterUptime-SmartContract/issues/15) tracks running the procedure against it. Until then, the restore command has only been run on testnet against a live entry, where it changes nothing (transaction [`38ce19eb…`](https://stellar.expert/explorer/testnet/tx/38ce19eb683b9c391d5322beb3c561083d374c732db37ecf772bb56a58e4c3b4)).
 
 ## The history length limit
 
@@ -66,29 +69,56 @@ The submitted transactions themselves, including their arguments (addresses and 
 
 ## Retention procedure
 
-`scripts/audit-export.sh` implements the three routine tasks. It needs the Stellar CLI and `jq`. It works on any deployment (`CONTRACT_ID`), with any funded identity paying (`SOURCE`); that account doesn't need to be the admin.
+`scripts/audit-export.sh` implements the routine tasks. It needs the Stellar CLI and `jq`. It works on any deployment (`CONTRACT_ID`), with any funded identity paying (`SOURCE`); that account doesn't need to be the admin.
 
 | When | Command | What it does |
 |---|---|---|
 | At least every **90 days**, and after any long quiet period | `scripts/audit-export.sh extend` | Extends the instance, the code, and every job, history and water-point entry by 3,000,000 ledgers (about 173 days) |
 | After jobs close or are cancelled, and at least **monthly** | `scripts/audit-export.sh export FILE` | Writes every job, its full history, the water points it references, and each entry's expiry ledger, then prints the file's SHA-256 |
-| When checking a record, or after any restore | `scripts/audit-export.sh verify FILE` | Re-reads the chain and checks each exported job and history is unchanged (or, for a job that was still open, only extended); lists the days left on every entry; exits non-zero on any difference |
+| When checking a record, or after any restore | `scripts/audit-export.sh verify FILE` | Re-reads the chain and checks each exported job and history is unchanged (or, for a job that was still open, only extended). Lists the time left on every entry. Exits 1 on any difference or missing job, and 2 if everything is unchanged but some entries are archived |
+| When `verify` reports archived entries | `scripts/audit-export.sh restore FILE`, then `extend` | Restores the instance, the code and every job, history and water-point entry in the export, then extends them |
 
 Store each export and its SHA-256 off-chain, outside the browser. In a real deployment that belongs in the access-controlled evidence store, which doesn't exist yet. Reporter entries aren't enumerable on-chain and aren't covered by `extend`; re-run `set_reporter` to refresh one.
 
 ### Restoring an archived record
 
-1. Run `verify` against the latest export. Entries shown as `NOT LIVE` are archived or missing.
-2. Restore each one. Any account can do this:
+1. Run `verify` against the latest export. Entries shown as `ARCHIVED` (exit status 2) need restoring. `NOT LIVE` means the entry could not be found at all.
+2. Run `scripts/audit-export.sh restore FILE`. It restores every entry the export covers; restoring one that is still live changes nothing.
+3. Run `scripts/audit-export.sh extend` straight away. Restored entries get only the network's minimum TTL.
+4. Run `verify` again. It must exit 0, and the restored jobs and histories must match the export exactly.
 
-   ```bash
-   KEY=$(echo '{"vec":[{"symbol":"History"},{"u64":"7"}]}' | stellar xdr encode --type ScVal)
-   stellar contract restore --id "$CONTRACT_ID" --key-xdr "$KEY" --durability persistent \
-     --source <any-funded-identity> --network testnet
-   ```
+To restore a single entry by hand:
 
-   Use `{"symbol":"Job"}` for the job record, and `{"vec":[{"symbol":"WaterPoint"},{"bytes":"<hex id>"}]}` for a water point. If the contract instance or its code was archived, restore them too (`--id` with no key, or `--wasm-hash`). Alternatively, any submitted transaction that reads the entry restores it automatically.
-3. Run `verify` again. The restored job and history must match the export exactly.
+```bash
+KEY=$(echo '{"vec":[{"symbol":"History"},{"u64":"7"}]}' | stellar xdr encode --type ScVal)
+stellar contract restore --id "$CONTRACT_ID" --key-xdr "$KEY" --durability persistent \
+  --source <any-funded-identity> --network testnet
+```
+
+Use `{"symbol":"Job"}` for the job record, and `{"vec":[{"symbol":"WaterPoint"},{"bytes":"<hex id>"}]}` for a water point. For the contract instance, pass `--id` with no key; for the code, pass `--wasm-hash`. Alternatively, any submitted transaction that reads the entry restores it automatically.
+
+### Tested on a local network
+
+**Archival, retrieval and restoration (2026-10-29), with `scripts/local-archival-test.sh`.** The script runs everything below in one go and takes about 20 minutes. Anyone with docker can repeat it.
+
+**Setup:**
+- A throwaway local network, `stellar/quickstart` with protocol 30. Its limits match testnet's, except that the minimum persistent entry lifetime is 100 ledgers, at about one ledger per second.
+- A build of this contract with the `short-ttl` feature, where a "day" is 4 ledgers, so records are extended to 480 ledgers rather than 120 days. That is its only difference from a release. The default build stays byte-identical to one without the feature, and CI builds both.
+- Archival, retrieval and restoration are done by the network and the Stellar CLI, not by contract code.
+
+**Results:**
+1. One synthetic job was reported, assigned, returned for rework, approved and closed (7 history entries), then exported with `audit-export.sh export`.
+2. **Everything archived:** after about 480 ledgers the job, its history, its water point, the contract instance and its code all showed as archived (`liveUntilLedgerSeq` 0).
+3. **Retrieval while archived:**
+   - a simulated `get_job_history` returned the archived history exactly as exported;
+   - `verify` reported the job unchanged and its 3 entries `ARCHIVED`, exiting with status 2.
+4. **Restoration:** `restore` brought back the instance, code, job, history and water point, each for only the network's minimum of about 100 ledgers. `extend` then made them live again, and `verify` exited 0 with the history identical to the export.
+5. **Automatic restoration:** after the water point archived again, a submitted `report_fault` for it succeeded and restored it without any separate step.
+
+Limits of this test:
+- **Local network:** it ran on a local network (protocol 30), not testnet (protocol 29).
+- **Test build:** it used the test build rather than the released WASM.
+- **Scale:** it covered one job.
 
 ### Tested on testnet
 
