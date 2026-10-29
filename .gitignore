@@ -7,3 +7,6 @@ target
 
 # Soroban test snapshots (regenerated on every test run)
 test_snapshots
+
+# Audit exports (scripts/audit-export.sh); store them outside the repository
+audit-*.json

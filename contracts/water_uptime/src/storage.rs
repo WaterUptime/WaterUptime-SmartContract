@@ -2,10 +2,13 @@ use soroban_sdk::{Address, BytesN, Env, Vec};
 
 use crate::types::{AuditEntry, DataKey, Error, MaintenanceJob, WaterPoint, MAX_HISTORY_LEN};
 
-const DAY_IN_LEDGERS: u32 = 17_280;
-const INSTANCE_BUMP: u32 = 30 * DAY_IN_LEDGERS;
+// TTLs, in ledgers (~5 s each). Each write, and each read inside a submitted
+// transaction, extends the entries it touches; simulated reads do not.
+// See docs/RETENTION.md.
+pub(crate) const DAY_IN_LEDGERS: u32 = 17_280;
+pub(crate) const INSTANCE_BUMP: u32 = 30 * DAY_IN_LEDGERS;
 const INSTANCE_THRESHOLD: u32 = INSTANCE_BUMP - DAY_IN_LEDGERS;
-const PERSISTENT_BUMP: u32 = 120 * DAY_IN_LEDGERS;
+pub(crate) const PERSISTENT_BUMP: u32 = 120 * DAY_IN_LEDGERS;
 const PERSISTENT_THRESHOLD: u32 = PERSISTENT_BUMP - 7 * DAY_IN_LEDGERS;
 
 pub fn bump_instance(env: &Env) {
@@ -106,9 +109,17 @@ pub fn get_history(env: &Env, job_id: u64) -> Vec<AuditEntry> {
     }
 }
 
-pub fn append_history(env: &Env, job_id: u64, entry: AuditEntry) -> Result<(), Error> {
+/// Append an audit entry, keeping `reserve` slots free for the entries the
+/// job still needs to reach a terminal status. This way the limit stops
+/// endless rework but never leaves a job unable to close or cancel.
+pub fn append_history(
+    env: &Env,
+    job_id: u64,
+    entry: AuditEntry,
+    reserve: u32,
+) -> Result<(), Error> {
     let mut history = get_history(env, job_id);
-    if history.len() >= MAX_HISTORY_LEN {
+    if history.len() + 1 + reserve > MAX_HISTORY_LEN {
         return Err(Error::HistoryLimitReached);
     }
     history.push_back(entry);

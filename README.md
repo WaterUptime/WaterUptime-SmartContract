@@ -37,7 +37,8 @@ Reported / Assigned / NeedsRework ──cancel──▶ Cancelled   (mistaken or
 - Only the assigned technician can submit evidence. Only the assigned verifier can approve or reject it.
 - A job cannot close until it is verified. `Closed` and `Cancelled` are terminal: those jobs cannot be reassigned or modified.
 - A job cannot be cancelled while repair evidence awaits verification; the verifier decides first. Cancelling records a reason fingerprint and frees the water point for new reports.
-- Rework never erases history: every transition appends an `AuditEntry` (action, actor, evidence reference, timestamp). History is capped at `MAX_HISTORY_LEN` (50) entries per job.
+- Rework never overwrites history: every transition appends an `AuditEntry` (action, actor, evidence reference, timestamp). History is capped at `MAX_HISTORY_LEN` (50) entries per job, with room always reserved to close or cancel, so at most 23 rework cycles.
+- Records are not permanent: they stay live while their TTL is extended (120 days from the last write), can be restored once archived, and are lost in a testnet reset. See [docs/RETENTION.md](docs/RETENTION.md) for the retention, export and restoration procedure.
 - Every state change emits an event. See [`docs/CONTRACT_INTERFACE.md`](docs/CONTRACT_INTERFACE.md).
 - Revoking a reporter does not affect jobs they already created.
 
@@ -53,9 +54,10 @@ contracts/water_uptime/src/
 ├── types.rs     # WaterPoint, MaintenanceJob, JobStatus, AuditEntry, Error, storage keys
 ├── events.rs    # #[contractevent] definitions
 ├── storage.rs   # storage access and TTL management
-└── test.rs      # unit tests (positive, negative, auth, events)
+└── test.rs      # unit tests (positive, negative, auth, events, history limit, TTL)
 scripts/testnet-demo.sh   # deploy + end-to-end synthetic job on testnet
-docs/                     # interface reference and testnet deployment
+scripts/audit-export.sh   # export, verify and extend audit records (docs/RETENTION.md)
+docs/                     # interface reference, testnet deployment, retention
 ```
 
 ## Development

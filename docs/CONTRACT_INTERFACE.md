@@ -50,7 +50,7 @@ All IDs and references are `BytesN<32>`: either a random opaque ID or a fingerpr
 | 10 | `SameTechnicianAndVerifier` | role-separation violation |
 | 11 | `NotAssignedTechnician` | caller is not the job's technician |
 | 12 | `NotAssignedVerifier` | caller is not the job's verifier |
-| 13 | `HistoryLimitReached` | job reached `MAX_HISTORY_LEN` audit entries |
+| 13 | `HistoryLimitReached` | the action would leave too little of the job's 50-entry history to close or cancel it; the job can still be finished (see [RETENTION.md](RETENTION.md#the-history-length-limit)) |
 
 ## Events
 
@@ -76,4 +76,4 @@ Payloads contain only addresses, opaque IDs and fingerprints. Never emit persona
 - **Instance:** `Admin`, `JobCount`.
 - **Persistent:** `Reporter(Address)`, `WaterPoint(id)`, `Job(u64)`, `History(u64)`.
 
-Persistent entries are extended to ~120 days whenever they are read or written. Records that nobody touches will eventually need a TTL extension or restore. A future issue should add explicit maintenance tooling for this.
+Persistent entries are extended to ~120 days whenever a submitted transaction writes or reads them; simulated (free) reads don't extend anything, so a finished job's records count down from its last write. The instance is extended to ~30 days by every write. Archived entries keep their contents and can be restored. Retention, export, verification and restoration procedures: [RETENTION.md](RETENTION.md).
