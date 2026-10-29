@@ -7,24 +7,31 @@
 #                                           each entry's expiry ledger to FILE
 #   scripts/audit-export.sh verify FILE     re-read the chain and check that
 #                                           every job and history in FILE is
-#                                           unchanged; report time left on each
+#                                           unchanged; report time left on each.
+#                                           Exits 1 if anything changed or is
+#                                           missing, 2 if unchanged but archived
 #   scripts/audit-export.sh extend [N]      extend the instance, code and every
 #                                           job, history and water-point entry
 #                                           by N ledgers (default 3000000, ~173
 #                                           days; the network maximum is ~180)
+#   scripts/audit-export.sh restore FILE    restore the instance, code and every
+#                                           job, history and water-point entry
+#                                           in FILE that has been archived
 #
-# Reads are simulated and free. `extend` submits transactions; any funded
-# account may pay for them, it does not need to be the admin.
+# Reads are simulated and free. `extend` and `restore` submit transactions; any
+# funded account may pay for them, it does not need to be the admin.
 #
 # Environment:
 #   CONTRACT_ID  deployment to read (default: the shared testnet instance)
 #   SOURCE       Stellar CLI identity used to simulate and pay (default: wu-reporter)
+#   NETWORK      Stellar CLI network (default: testnet; scripts/local-archival-test.sh
+#                uses a local one)
 #
-# Requires: stellar CLI, jq, sha256sum. Testnet only.
+# Requires: stellar CLI, jq, sha256sum. Testnet or a local network only.
 
 set -euo pipefail
 
-NETWORK=testnet
+NETWORK=${NETWORK:-testnet}
 CONTRACT=${CONTRACT_ID:-CDO5G5UK4YLRCBXWJI7GSJYTPXZSZNCAQ4ILAKZHYUBA64QWWCUTF22Z}
 SOURCE=${SOURCE:-wu-reporter}
 DAY=17280
@@ -83,7 +90,9 @@ report_ttl() {
   jq -r --argjson day "$DAY" '
     .ledger as $now
     | def left($t): if $t == null then "NOT LIVE (archived or missing)"
-                    else "\((($t - $now) / $day) | floor) days left (until ledger \($t))" end;
+                    elif $t == 0 then "ARCHIVED; run restore"
+                    elif $t < $now then "EXPIRED after ledger \($t), archived at the next eviction scan; run restore"
+                    else "\((($t - $now) / $day) | floor) days left (\($t - $now) ledgers, until ledger \($t))" end;
     (.jobs[] | "job \(.id) [\(.job.status)]: record \(left(.live_until.job)); history (\(.history | length) entries) \(left(.live_until.history))"),
     (.water_points[] | "water point \(.point.id[0:12])…: \(left(.live_until))")' "$1"
 }
@@ -126,6 +135,11 @@ verify)
   done < <(jq '.jobs[].id' "$file")
   echo "Expiry now:"
   report_ttl "$now"
+  archived=$(report_ttl "$now" | { grep -o -e ARCHIVED -e EXPIRED || true; } | wc -l)
+  if ((failed == 0 && archived > 0)); then
+    echo "Content unchanged, but $archived entries are archived: run restore $file, then extend."
+    exit 2
+  fi
   exit $failed
   ;;
 extend)
@@ -149,8 +163,29 @@ extend)
     fi
   done
   ;;
+restore)
+  file=${2:?usage: audit-export.sh restore FILE}
+  CONTRACT=$(jq -r .contract "$file")
+  # A restored entry gets only the network's minimum TTL (~7 days on testnet),
+  # so run `extend` straight afterwards. Restoring a live entry changes nothing.
+  rst() {
+    stellar contract restore --source "$SOURCE" --network "$NETWORK" --durability persistent "$@" 2>&1 |
+      awk '/New ttl ledger/ {print $NF; found = 1} END {if (!found) print "not restored"}'
+  }
+  echo "instance: live until ledger $(rst --id "$CONTRACT")"
+  wasm=$(stellar contract info hash --contract-id "$CONTRACT" --network "$NETWORK" 2>/dev/null)
+  echo "code ${wasm:0:12}…: live until ledger $(rst --wasm-hash "$wasm")"
+  while read -r id; do
+    echo "job $id: live until ledger $(rst --id "$CONTRACT" --key-xdr "$(key_xdr Job "{\"u64\":\"$id\"}")")"
+    echo "history $id: live until ledger $(rst --id "$CONTRACT" --key-xdr "$(key_xdr History "{\"u64\":\"$id\"}")")"
+  done < <(jq '.jobs[].id' "$file")
+  while read -r point; do
+    echo "water point ${point:0:12}…: live until ledger $(rst --id "$CONTRACT" --key-xdr "$(key_xdr WaterPoint "{\"bytes\":\"$point\"}")")"
+  done < <(jq -r '.water_points[].point.id' "$file")
+  echo "Now run: $0 extend, then $0 verify $file"
+  ;;
 *)
-  sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'
   exit 2
   ;;
 esac
