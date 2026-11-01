@@ -2,7 +2,7 @@
 
 Soroban (Stellar) contract for **WaterUptime**: open-source maintenance and verification infrastructure for community water systems.
 
-The contract enforces an auditable repair workflow for a water point — fault report, assignment, repair evidence, independent verification, and close-out — and keeps a readable on-chain history of who did what and when.
+The contract enforces an auditable repair workflow for a water point — fault report, assignment, repair evidence, independent verification, and close-out — and records an on-chain history of who did what and when. That history is capped at 50 entries per job and lasts only as long as its storage is kept or restored; see [docs/RETENTION.md](docs/RETENTION.md).
 
 > **Status:** experimental prototype. Testnet and synthetic data only. Not audited. No real funds, no mainnet, no personal data. No government, NGO, or UNDP partnership is claimed.
 
@@ -38,7 +38,7 @@ Reported / Assigned / NeedsRework ──cancel──▶ Cancelled   (mistaken or
 - A job cannot close until it is verified. `Closed` and `Cancelled` are terminal: those jobs cannot be reassigned or modified.
 - A job cannot be cancelled while repair evidence awaits verification; the verifier decides first. Cancelling records a reason fingerprint and frees the water point for new reports.
 - Rework never overwrites history: every transition appends an `AuditEntry` (action, actor, evidence reference, timestamp). History is capped at `MAX_HISTORY_LEN` (50) entries per job, with room always reserved to close or cancel, so at most 23 rework cycles.
-- Records are not permanent: they stay live while their TTL is extended (120 days from the last write), can be restored once archived, and are lost in a testnet reset. See [docs/RETENTION.md](docs/RETENTION.md) for the retention, export and restoration procedure.
+- Records are not permanent: they stay live while their TTL is extended (120 days from the last write), can be restored once archived, and are lost in a testnet reset. Archival and restoration are tested end to end on a local network (`scripts/local-archival-test.sh`), but not yet on testnet ([#15](https://github.com/WaterUptime/WaterUptime-SmartContract/issues/15)). See [docs/RETENTION.md](docs/RETENTION.md) for the retention, export and restoration procedure.
 - Every state change emits an event. See [`docs/CONTRACT_INTERFACE.md`](docs/CONTRACT_INTERFACE.md).
 - Revoking a reporter does not affect jobs they already created.
 
@@ -55,9 +55,11 @@ contracts/water_uptime/src/
 ├── events.rs    # #[contractevent] definitions
 ├── storage.rs   # storage access and TTL management
 └── test.rs      # unit tests (positive, negative, auth, events, history limit, TTL)
-scripts/testnet-demo.sh   # deploy + end-to-end synthetic job on testnet
-scripts/audit-export.sh   # export, verify and extend audit records (docs/RETENTION.md)
-docs/                     # interface reference, testnet deployment, retention
+scripts/testnet-demo.sh            # deploy + end-to-end synthetic job on testnet
+scripts/testnet-history-limit.sh   # check the history limit on a testnet deployment
+scripts/audit-export.sh            # export, verify, extend and restore audit records (docs/RETENTION.md)
+scripts/local-archival-test.sh     # archive records for real on a local network, then retrieve and restore them
+docs/                              # interface reference, testnet deployment, retention
 ```
 
 ## Development

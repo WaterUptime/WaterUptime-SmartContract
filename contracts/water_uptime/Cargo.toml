@@ -8,6 +8,10 @@ publish = false
 crate-type = ["lib", "cdylib"]
 doctest = false
 
+[features]
+# Shortens every TTL for the local archival test. Never enable in a release.
+short-ttl = []
+
 [dependencies]
 soroban-sdk = { workspace = true }
 

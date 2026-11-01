@@ -29,3 +29,10 @@ jobs:
 
       - name: Build WASM
         run: cargo build --target wasm32v1-none --release -p water_uptime
+
+      # Test-only build used by scripts/local-archival-test.sh; never released.
+      - name: Build short-ttl test WASM
+        run: cargo build --target wasm32v1-none --release -p water_uptime --features short-ttl
+
+      - name: Check scripts
+        run: bash -n scripts/*.sh
